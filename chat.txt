@@ -1,2 +1,2 @@
-سلام
-اگر این متن رو به درستی خوندی به من بگو ارتباط برقرار است
+Hello
+If you read this text, tell me if the connection is established.
