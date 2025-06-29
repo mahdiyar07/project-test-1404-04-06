@@ -1,41 +1,39 @@
-from flask import Flask, render_template, request, redirect, flash
+from flask import Flask, render_template, request, flash, redirect, url_for
 import os
-from werkzeug.utils import secure_filename
 
 app = Flask(__name__)
-app.secret_key = 'secret123'  # برای flash message
-UPLOAD_FOLDER = 'uploads'
-ALLOWED_EXTENSIONS = {'pdf'}
+app.secret_key = "your_secret_key"  # برای پیام‌های flash ضروری است
 
+# تنظیم مسیر ذخیره فایل‌ها
+UPLOAD_FOLDER = 'uploads'
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
-# بررسی فرمت
-def allowed_file(filename):
-    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+# حداکثر حجم فایل (1 مگابایت)
+MAX_FILE_SIZE = 1 * 1024 * 1024  # 1MB
+
+if not os.path.exists(UPLOAD_FOLDER):
+    os.makedirs(UPLOAD_FOLDER)
 
 @app.route('/', methods=['GET', 'POST'])
-def upload_file():
+def index():
     if request.method == 'POST':
-        if 'pdf_file' not in request.files:
-            flash('فایلی انتخاب نشده است.')
+        file = request.files.get('file')
+        if not file:
+            flash('هیچ فایلی انتخاب نشده است.', 'danger')
             return redirect(request.url)
-        file = request.files['pdf_file']
-        if file.filename == '':
-            flash('هیچ فایلی انتخاب نشده است.')
+
+        # بررسی حجم فایل
+        file.seek(0, os.SEEK_END)  # حرکت به انتهای فایل
+        file_length = file.tell()
+        file.seek(0)  # بازگشت به ابتدای فایل
+
+        if file_length > MAX_FILE_SIZE:
+            flash('حجم فایل نباید بیش از 1 مگابایت باشد.', 'danger')
             return redirect(request.url)
-        if file and allowed_file(file.filename):
-            filename = secure_filename(file.filename)
-            filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-            file.save(filepath)
-            flash('فایل با موفقیت ذخیره شد!')
-            return redirect(request.url)
-        else:
-            flash('فقط فایل‌های PDF مجاز هستند.')
-            return redirect(request.url)
+
+        # ذخیره فایل
+        file.save(os.path.join(app.config['UPLOAD_FOLDER'], file.filename))
+        flash('فایل با موفقیت آپلود شد.', 'success')
+        return redirect(request.url)
 
     return render_template('index.html')
-
-if __name__ == '__main__':
-    if not os.path.exists(UPLOAD_FOLDER):
-        os.makedirs(UPLOAD_FOLDER)
-    app.run(debug=True)
