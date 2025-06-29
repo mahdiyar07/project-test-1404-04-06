@@ -1,14 +1,14 @@
-from flask import Flask, render_template, request, flash, redirect, url_for
+from flask import Flask, render_template, request, flash, redirect
 import os
+import chenge  # فایل chenge.py را ایمپورت می‌کنیم
 
 app = Flask(__name__)
-app.secret_key = "your_secret_key"  # برای نمایش پیام‌ها
+app.secret_key = "your_secret_key"
 
 UPLOAD_FOLDER = 'uploads'
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 MAX_FILE_SIZE = 200 * 1024 * 1024  # 200 مگابایت
-
-ALLOWED_EXTENSIONS = {'pdf'}  # پسوندهای مجاز
+ALLOWED_EXTENSIONS = {'pdf'}
 
 if not os.path.exists(UPLOAD_FOLDER):
     os.makedirs(UPLOAD_FOLDER)
@@ -28,7 +28,6 @@ def index():
             flash('فقط فایل‌های PDF مجاز هستند.', 'danger')
             return redirect(request.url)
 
-        # بررسی حجم فایل
         file.seek(0, os.SEEK_END)
         file_length = file.tell()
         file.seek(0)
@@ -37,9 +36,17 @@ def index():
             flash('حجم فایل نباید بیش از 200 مگابایت باشد.', 'danger')
             return redirect(request.url)
 
-        # ذخیره فایل
-        file.save(os.path.join(app.config['UPLOAD_FOLDER'], file.filename))
-        flash('فایل با موفقیت آپلود شد.', 'success')
+        file_path = os.path.join(app.config['UPLOAD_FOLDER'], file.filename)
+        file.save(file_path)
+
+        # فراخوانی تابع تبدیل PDF به Word
+        result = chenge.process_uploaded_file(file_path)
+
+        if result:
+            flash('فایل با موفقیت آپلود و به ورد تبدیل شد.', 'success')
+        else:
+            flash('خطا در تبدیل فایل PDF به Word.', 'danger')
+
         return redirect(request.url)
 
     return render_template('index.html')
